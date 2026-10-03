@@ -10,7 +10,7 @@ export function MobileTopBar({ onMenu, onSync }: Pick<MobileChromeProps, "onMenu
   return (
     <header className="mobile-topbar">
       <button className="mobile-icon-button" onClick={onMenu} aria-label="Open menu">☰</button>
-      <span className="mobile-brand"><span className="brand-mark" aria-hidden="true">n</span> my notes</span>
+      <span className="mobile-brand"><img className="brand-logo mobile-logo" src={`${import.meta.env.BASE_URL}logo.jfif`} alt="My Note logo" /> my notes</span>
       <button className="mobile-icon-button" onClick={onSync} aria-label="Sync">☁</button>
     </header>
   );

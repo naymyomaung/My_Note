@@ -324,7 +324,7 @@ function Welcome({ onCreate, hasNotes }: { onCreate: () => void; hasNotes: boole
   return (
     <main className="welcome">
       <div className="welcome-content">
-        <div className="welcome-icon" aria-hidden="true">✳</div>
+        <img className="welcome-logo" src={`${import.meta.env.BASE_URL}logo.jfif`} alt="My Note logo" />
         <p className="eyebrow">{hasNotes ? "YOUR NOTES, YOUR SPACE" : "A LITTLE SPACE TO THINK"}</p>
         <h1>{hasNotes ? "Pick up where you left off." : "A quiet place for your thoughts."}</h1>
         <p className="welcome-description">

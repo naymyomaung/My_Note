@@ -44,7 +44,7 @@ export default function NoteList({
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-mark" aria-hidden="true">n</div>
+        <img className="brand-logo" src={`${import.meta.env.BASE_URL}logo.jfif`} alt="My Note logo" />
         <span>my notes</span>
         <button className="sidebar-close" onClick={onToggleSidebar} aria-label="Close menu" title="Close menu">×</button>
         <button className="sidebar-hide" onClick={onToggleSidebar} aria-label="Hide sidebar" title="Hide sidebar">◀</button>
