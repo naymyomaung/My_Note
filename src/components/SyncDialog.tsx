@@ -11,10 +11,12 @@ interface SyncController {
   preview: SyncPreviewItem[];
   busy: boolean;
   error: string | null;
+  notice: string | null;
   lastSyncedAt: string | null;
   saveSettings: (settings: GitHubRepositorySettings) => void;
   saveToken: (token: string) => void;
   preparePreview: (notes: Note[]) => Promise<void>;
+  createNotesFolder: () => Promise<void>;
   updateConflictChoice: (id: string, choice: SyncPreviewItem["conflictChoice"]) => void;
   invalidatePreview: () => void;
   applyPreview: (notes: Note[]) => Promise<void>;
@@ -104,6 +106,7 @@ export default function SyncDialog({ notes, controller, onClose, onReplaceNotes 
         </div>
 
         {controller.error && <div className="sync-error" role="alert">{controller.error}</div>}
+        {controller.notice && <div className="sync-notice" role="status">{controller.notice}</div>}
 
         {tab === "sync" && (
           <div className="sync-panel">
@@ -123,6 +126,20 @@ export default function SyncDialog({ notes, controller, onClose, onReplaceNotes 
               <button className="secondary-button" onClick={() => void controller.preparePreview(notes)} disabled={controller.busy || !controller.isConnected}>
                 {controller.busy ? "Checking…" : "Check for changes"}
               </button>
+              {controller.settings.directory.trim() && (
+                <button
+                  className="text-button"
+                  disabled={controller.busy || !controller.isConnected}
+                  onClick={() => {
+                    const confirmed = window.confirm(
+                      `Create “${controller.settings.directory}” on branch “${controller.settings.branch}” in ${controller.settings.owner}/${controller.settings.repository}?\n\nThis creates one commit containing a .gitkeep file. It does not upload or change your notes.`,
+                    );
+                    if (confirmed) void controller.createNotesFolder();
+                  }}
+                >
+                  Create notes folder
+                </button>
+              )}
               {controller.lastSyncedAt && <span className="last-synced">Last synced {formatDate(controller.lastSyncedAt)}</span>}
             </div>
             {controller.preview.length > 0 && (

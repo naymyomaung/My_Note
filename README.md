@@ -23,7 +23,7 @@ Create a production build with `npm run build`; serve `dist/` over HTTPS (or loc
 
 ## GitHub setup
 
-Create a fine-grained personal access token for the one repository you intend to use. Grant **Contents: Read and write** for that repository. In the app, open **Sync → Settings**, enter the repository owner, repository name, branch, and a folder dedicated to My Note (default: `notes`), then save the token. Create that folder on the selected branch before syncing; the GitHub Contents API needs the parent folder to exist before a note can be written. Alternatively, clear Notes folder to store Markdown files at the repository root.
+Create a fine-grained personal access token for the one repository you intend to use. Grant **Contents: Read and write** for that repository. In the app, open **Sync → Settings**, enter the repository owner, repository name, branch, and a folder dedicated to My Note (default: `notes`), then save the token. If the folder does not exist, use **Create notes folder** to create it on the selected branch; this creates a `.gitkeep` placeholder commit and does not modify local notes. Alternatively, clear Notes folder to store Markdown files at the repository root.
 
 The token is held in `sessionStorage` for the current browser session, not in note backups or LocalStorage. This is a browser-only integration, not an OAuth client or a secure credential vault: anyone with access to the same browser profile during that session can use the token. Revoke it from GitHub when it is no longer needed. Do not use a token with access to repositories you do not want this browser app to modify.
 

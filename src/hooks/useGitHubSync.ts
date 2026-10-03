@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   buildSyncPreview,
+  createNotesFolder as createRemoteNotesFolder,
   deleteRemoteNote,
   fetchRemoteNotes,
   putRemoteNote,
@@ -48,6 +49,7 @@ export function useGitHubSync(onReplaceNotes: (notes: Note[]) => void) {
   const [preview, setPreview] = useState<SyncPreviewItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(initialData.error);
+  const [notice, setNotice] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   function saveSettings(nextSettings: GitHubRepositorySettings): void {
@@ -110,6 +112,7 @@ export function useGitHubSync(onReplaceNotes: (notes: Note[]) => void) {
     }
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
       const remote = await fetchRemoteNotes(token, settings);
       setRemoteNotes(remote);
@@ -118,6 +121,25 @@ export function useGitHubSync(onReplaceNotes: (notes: Note[]) => void) {
     } catch (cause) {
       setRemoteNotes([]);
       setPreview([]);
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createNotesFolder(): Promise<void> {
+    if (!token) {
+      setError("Add a fine-grained GitHub token in Settings before creating the folder.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    setPreview([]);
+    try {
+      await createRemoteNotesFolder(token, settings);
+      setNotice(`Created “${settings.directory}” on branch “${settings.branch}”. Your notes are unchanged; check for changes to sync.`);
+    } catch (cause) {
       setError(errorMessage(cause));
     } finally {
       setBusy(false);
@@ -256,12 +278,14 @@ export function useGitHubSync(onReplaceNotes: (notes: Note[]) => void) {
     preview,
     busy,
     error,
+    notice,
     lastSyncedAt,
     saveSettings,
     saveToken,
     recordDeletion,
     recordDeletions,
     preparePreview,
+    createNotesFolder,
     updateConflictChoice,
     invalidatePreview,
     applyPreview,

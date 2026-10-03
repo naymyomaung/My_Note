@@ -13,6 +13,17 @@ export interface RemoteNote {
   path: string;
 }
 
+interface GitHubBranch {
+  commit?: {
+    sha?: string;
+    commit?: {
+      tree?: {
+        sha?: string;
+      };
+    };
+  };
+}
+
 interface GitHubContent {
   name: string;
   path: string;
@@ -222,6 +233,82 @@ export async function deleteRemoteNote(
     }),
   });
   if (!response) throw new Error("GitHub did not return a deletion response.");
+}
+
+export async function createNotesFolder(
+  token: string,
+  settings: GitHubRepositorySettings,
+): Promise<void> {
+  validateSettings(settings);
+  const directory = settings.directory.split("/").map((part) => part.trim()).filter(Boolean).join("/");
+  if (!directory) throw new Error("Enter a Notes folder in Settings before creating it.");
+
+  const repository = await githubRequest(token, repositoryApiUrl(settings, ""), { method: "GET" }, {
+    notFoundMessage: "GitHub could not find this repository or the token cannot access it. Check the owner, repository name, and token permissions.",
+  });
+  if (!repository) throw new Error("GitHub did not confirm repository access.");
+
+  const branchResponse = await githubRequest(
+    token,
+    repositoryApiUrl(settings, `branches/${encodeURIComponent(settings.branch)}`),
+    { method: "GET" },
+    { notFoundMessage: `GitHub could not find branch “${settings.branch}”. Check the branch name in Settings.` },
+  );
+  if (!branchResponse) throw new Error(`GitHub did not confirm branch “${settings.branch}”.`);
+  const branch = (await branchResponse.json()) as GitHubBranch;
+  const parentCommit = branch.commit?.sha;
+  const baseTree = branch.commit?.commit?.tree?.sha;
+  if (!parentCommit || !baseTree) throw new Error("GitHub returned incomplete branch information.");
+
+  const existingFolder = await githubRequest(
+    token,
+    contentsApiUrl(settings, directory),
+    { method: "GET" },
+    { allowNotFound: true },
+  );
+  if (existingFolder) {
+    const existingContents: unknown = await existingFolder.json();
+    if (Array.isArray(existingContents)) {
+      throw new Error(`“${directory}” already exists on branch “${settings.branch}”. Use Check for changes instead.`);
+    }
+    throw new Error(`“${directory}” already exists, but is not a folder. Choose a different Notes folder in Settings.`);
+  }
+
+  const treeResponse = await githubRequest(token, repositoryApiUrl(settings, "git/trees"), {
+    method: "POST",
+    body: JSON.stringify({
+      base_tree: baseTree,
+      tree: [{
+        path: `${directory}/.gitkeep`,
+        mode: "100644",
+        type: "blob",
+        content: "My Note sync folder.\n",
+      }],
+    }),
+  });
+  if (!treeResponse) throw new Error("GitHub did not return the new tree.");
+  const tree = (await treeResponse.json()) as { sha?: string };
+  if (!tree.sha) throw new Error("GitHub did not return the new tree identifier.");
+
+  const commitResponse = await githubRequest(token, repositoryApiUrl(settings, "git/commits"), {
+    method: "POST",
+    body: JSON.stringify({
+      message: `Create My Note folder: ${directory}`,
+      tree: tree.sha,
+      parents: [parentCommit],
+    }),
+  });
+  if (!commitResponse) throw new Error("GitHub did not return the folder commit.");
+  const commit = (await commitResponse.json()) as { sha?: string };
+  if (!commit.sha) throw new Error("GitHub did not return the folder commit identifier.");
+
+  const ref = `heads/${settings.branch.split("/").map(encodeURIComponent).join("/")}`;
+  const refResponse = await githubRequest(
+    token,
+    repositoryApiUrl(settings, `git/refs/${ref}`),
+    { method: "PATCH", body: JSON.stringify({ sha: commit.sha, force: false }) },
+  );
+  if (!refResponse) throw new Error("GitHub did not confirm the branch update.");
 }
 
 function item(

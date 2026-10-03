@@ -254,6 +254,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .preview-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; }
 .preview-footer > span { color: #92928a; font-size: 9px; }
 .sync-error { margin: 15px 26px 0; padding: 9px 11px; border: 1px solid #ecd8d2; border-radius: 6px; background: #fff8f6; color: #955b50; font-size: 11px; line-height: 1.6; }
+.sync-notice { margin: 15px 26px 0; padding: 9px 11px; border: 1px solid #d9e6d9; border-radius: 6px; background: #f3f8f2; color: #4e7353; font-size: 11px; line-height: 1.6; }
 .form-field { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
 .form-field > span { color: #55564f; font-size: 10px; font-weight: 600; }
 .form-field input { width: 100%; min-width: 0; height: 35px; padding: 0 9px; border: 1px solid #e3e4de; border-radius: 5px; outline: 0; background: #fff; color: #41413b; font-size: 11px; }
@@ -336,4 +337,5 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .theme-dark .preview-download .preview-action { background: #2e3946; color: #b3c6dc; }
 .theme-dark .preview-delete .preview-action { background: #472f2c; color: #e0aaa1; }
 .theme-dark .preview-conflict .preview-action { background: #493b29; color: #e4c38e; }
+.theme-dark .sync-notice { border-color: #3d5741; background: #29352b; color: #a8cbaa; }
 .theme-dark .markdown-input::placeholder, .theme-dark .title-input::placeholder { color: #767b72; }
