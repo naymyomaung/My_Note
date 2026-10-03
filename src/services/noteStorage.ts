@@ -8,6 +8,17 @@ const TAGS_KEY = "my-note.tags.v1";
 
 export const EMPTY_SYNC_STATE: NoteSyncState = { synced: {}, deleted: {}, attachments: {} };
 
+export function randomId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // Fall through to the insecure-context fallback below.
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export function loadNotes(): Note[] {
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === null) return [];

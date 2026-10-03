@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { loadNotes, saveNotes } from "../services/noteStorage";
+import { loadNotes, randomId, saveNotes } from "../services/noteStorage";
 import type { Note } from "../types/note";
 
 interface NotesState {
@@ -36,7 +36,7 @@ export function useNotes() {
   function createNote(initial?: { title?: string; tags?: string[] }): string {
     const now = new Date().toISOString();
     const note: Note = {
-      id: crypto.randomUUID(),
+      id: randomId(),
       title: initial?.title?.trim() || "Untitled",
       content: "",
       tags: [...(initial?.tags ?? [])],

@@ -38,7 +38,11 @@ body {
 }
 
 button, input, textarea { font: inherit; }
-button { color: inherit; }
+button {
+  color: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* ============ APP SHELL / SIDEBAR ============ */
 .app-shell { display: flex; min-height: 100vh; }

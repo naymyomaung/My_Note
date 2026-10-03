@@ -42,6 +42,7 @@ SyntaxHighlighter.registerLanguage("c", c);
 SyntaxHighlighter.registerLanguage("cpp", cpp);
 SyntaxHighlighter.registerLanguage("ini", ini);
 import { deleteAttachmentBlob, getAttachmentBlob, saveAttachmentBlob } from "../services/attachmentBlobs";
+import { randomId } from "../services/noteStorage";
 import { downloadNoteFile, downloadNotePng } from "../services/noteExport";
 import type { Attachment, Note } from "../types/note";
 
@@ -478,7 +479,7 @@ function AttachmentsBlock({ note, onChange }: { note: Note; onChange: (attachmen
           setAttachError(`"${file.name}" is over 15 MB and was skipped.`);
           continue;
         }
-        const id = crypto.randomUUID();
+        const id = randomId();
         await saveAttachmentBlob(id, file);
         additions.push({
           id,
