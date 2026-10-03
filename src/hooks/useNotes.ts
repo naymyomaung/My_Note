@@ -33,12 +33,14 @@ export function useNotes() {
     }
   }, [state.notes, state.error]);
 
-  function createNote(): string {
+  function createNote(initial?: { title?: string; tags?: string[] }): string {
     const now = new Date().toISOString();
     const note: Note = {
       id: crypto.randomUUID(),
-      title: "Untitled",
+      title: initial?.title?.trim() || "Untitled",
       content: "",
+      tags: [...(initial?.tags ?? [])],
+      attachments: [],
       createdAt: now,
       updatedAt: now,
     };
@@ -50,7 +52,7 @@ export function useNotes() {
     return note.id;
   }
 
-  function updateNote(id: string, updates: Pick<Note, "title" | "content">): void {
+  function updateNote(id: string, updates: Pick<Note, "title" | "content" | "tags" | "attachments">): void {
     setState((current) => ({
       ...current,
       error: current.loadFailed ? current.error : null,

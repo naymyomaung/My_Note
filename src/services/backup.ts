@@ -43,7 +43,7 @@ export async function readBackup(file: File): Promise<Note[]> {
   if (new Set(notes.map((note) => note.id)).size !== notes.length) {
     throw new Error("This backup contains duplicate note identifiers.");
   }
-  return notes;
+  return notes.map((note) => ({ ...note, tags: [...(note.tags ?? [])], attachments: [...(note.attachments ?? [])] }));
 }
 
 function isBackup(value: unknown): value is NoteBackup {
@@ -59,7 +59,21 @@ function isNote(value: unknown): value is Note {
     typeof note.id === "string" &&
     typeof note.title === "string" &&
     typeof note.content === "string" &&
+    (note.tags === undefined || (Array.isArray(note.tags) && note.tags.every((tag) => typeof tag === "string"))) &&
+    (note.attachments === undefined || (Array.isArray(note.attachments) && note.attachments.every(isAttachment))) &&
     typeof note.createdAt === "string" &&
     typeof note.updatedAt === "string"
+  );
+}
+
+function isAttachment(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const attachment = value as Record<string, unknown>;
+  return (
+    typeof attachment.id === "string" &&
+    typeof attachment.name === "string" &&
+    typeof attachment.mimeType === "string" &&
+    typeof attachment.size === "number" &&
+    typeof attachment.updatedAt === "string"
   );
 }
