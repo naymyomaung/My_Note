@@ -5,6 +5,7 @@ import {
   deleteRemoteNote,
   fetchRemoteNotes,
   putRemoteNote,
+  verifyGitHubAccess,
   type RemoteNote,
 } from "../services/githubSync";
 import {
@@ -139,6 +140,24 @@ export function useGitHubSync(onReplaceNotes: (notes: Note[]) => void) {
     try {
       await createRemoteNotesFolder(token, settings);
       setNotice(`Created “${settings.directory}” on branch “${settings.branch}”. Your notes are unchanged; check for changes to sync.`);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function testConnection(): Promise<void> {
+    if (!token) {
+      setError("Save your fine-grained GitHub token in Settings before testing the connection.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await verifyGitHubAccess(token, settings);
+      setNotice(`GitHub access confirmed for ${settings.owner}/${settings.repository} on branch “${settings.branch}”.`);
     } catch (cause) {
       setError(errorMessage(cause));
     } finally {
@@ -286,6 +305,7 @@ export function useGitHubSync(onReplaceNotes: (notes: Note[]) => void) {
     recordDeletions,
     preparePreview,
     createNotesFolder,
+    testConnection,
     updateConflictChoice,
     invalidatePreview,
     applyPreview,

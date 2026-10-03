@@ -29,7 +29,7 @@ The token is held in `sessionStorage` for the current browser session, not in no
 
 Each synced note is stored as a Markdown file with a small My Note metadata comment at the top. The app lists Markdown files in the configured folder and expects those files to contain its metadata. Use a folder dedicated to this app.
 
-Select **Check for changes** to review uploads, downloads, remote deletions, and conflicts. Conflicts are skipped until you select **Keep local** or **Keep GitHub**. GitHub deletions are not applied until they appear in the preview and you apply it. A JSON backup is downloaded before applying changes. If a selected GitHub copy changed after preview, the app stops and asks you to refresh the preview.
+Use **Test connection** in Settings to verify that the saved token can access the selected repository and branch. Select **Check for changes** to review uploads, downloads, remote deletions, and conflicts. Conflicts are skipped until you select **Keep local** or **Keep GitHub**. GitHub deletions are not applied until they appear in the preview and you apply it. A JSON backup is downloaded before applying changes. If a selected GitHub copy changed after preview, the app stops and asks you to refresh the preview.
 
 ## Backups and appearance
 

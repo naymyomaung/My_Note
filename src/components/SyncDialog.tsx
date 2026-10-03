@@ -17,6 +17,7 @@ interface SyncController {
   saveToken: (token: string) => void;
   preparePreview: (notes: Note[]) => Promise<void>;
   createNotesFolder: () => Promise<void>;
+  testConnection: () => Promise<void>;
   updateConflictChoice: (id: string, choice: SyncPreviewItem["conflictChoice"]) => void;
   invalidatePreview: () => void;
   applyPreview: (notes: Note[]) => Promise<void>;
@@ -188,6 +189,9 @@ export default function SyncDialog({ notes, controller, onClose, onReplaceNotes 
             <div className="settings-note"><strong>Token safety</strong><span>This browser-only app sends your token directly to api.github.com over HTTPS. Anyone using this browser profile can access it while this tab session lasts. Revoke the token in GitHub when it is no longer needed.</span></div>
             <div className="panel-actions">
               {controller.isConnected && <button className="text-button disconnect-button" onClick={() => { controller.saveToken(""); setTokenDraft(""); }}>Remove token</button>}
+              <button className="secondary-button" disabled={controller.busy || !controller.isConnected || settingsDraft.owner.trim() !== controller.settings.owner || settingsDraft.repository.trim() !== controller.settings.repository || settingsDraft.branch.trim() !== controller.settings.branch} onClick={() => void controller.testConnection()}>
+                {controller.busy ? "Checking…" : "Test connection"}
+              </button>
               <button className="primary-button" onClick={() => { saveSettings(); if (tokenDraft.trim()) controller.saveToken(tokenDraft); setTokenDraft(""); }}>
                 Save GitHub settings
               </button>

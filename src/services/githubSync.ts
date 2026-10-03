@@ -45,17 +45,17 @@ export function notePath(settings: GitHubRepositorySettings, id: string): string
   return `${directory ? `${directory}/` : ""}${id}.md`;
 }
 
-export async function fetchRemoteNotes(
+export async function verifyGitHubAccess(
   token: string,
   settings: GitHubRepositorySettings,
-): Promise<RemoteNote[]> {
+): Promise<void> {
   validateSettings(settings);
   const repositoryResponse = await githubRequest(
     token,
     repositoryApiUrl(settings, ""),
     { method: "GET" },
     {
-      notFoundMessage: "GitHub could not find this repository or the token cannot access it. Check the owner, repository name, and token permissions.",
+      notFoundMessage: "GitHub could not find this repository or this token cannot access it. Check the owner, repository name, and fine-grained token repository access.",
     },
   );
   if (!repositoryResponse) throw new Error("GitHub did not confirm repository access.");
@@ -64,11 +64,17 @@ export async function fetchRemoteNotes(
     token,
     repositoryApiUrl(settings, `branches/${encodeURIComponent(settings.branch)}`),
     { method: "GET" },
-    {
-      notFoundMessage: `GitHub could not find branch “${settings.branch}”. Check the branch name in Settings.`,
-    },
+    { notFoundMessage: `GitHub could not find branch “${settings.branch}”. Check the branch name in Settings.` },
   );
   if (!branchResponse) throw new Error(`GitHub did not confirm branch “${settings.branch}”.`);
+}
+
+export async function fetchRemoteNotes(
+  token: string,
+  settings: GitHubRepositorySettings,
+): Promise<RemoteNote[]> {
+  validateSettings(settings);
+  await verifyGitHubAccess(token, settings);
 
   const listing = await listContentsAtPath(token, settings, settings.directory);
 
@@ -427,7 +433,7 @@ async function githubRequest(
       },
     });
   } catch {
-    throw new Error("Could not reach the GitHub API. Check your internet connection, VPN or firewall, then retry. Your local notes are safe.");
+    throw new Error("The browser could not complete a request to api.github.com (connection reset, proxy/firewall, or browser network policy). Check that URL in this browser and retry; on managed networks allow HTTPS access to api.github.com. If that works but this check fails, verify this repository’s fine-grained token access and Contents permission. Local notes are safe.");
   }
   if (response.status === 404 && options.allowNotFound) return null;
   if (!response.ok) {
