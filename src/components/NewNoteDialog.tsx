@@ -1,13 +1,24 @@
 import { useState } from "react";
+import { isNoteType, NOTE_TYPES, type NoteType } from "../types/note";
 
 interface NewNoteDialogProps {
   existingTags: string[];
   onClose: () => void;
-  onConfirm: (title: string, tags: string[]) => void;
+  onConfirm: (title: string, tags: string[], type: NoteType) => void;
 }
+
+const NOTE_TYPE_LABELS: Record<NoteType, string> = {
+  md: "Markdown (.md)",
+  txt: "Text (.txt)",
+  csharp: "C# (.cs)",
+  sql: "SQL (.sql)",
+  json: "JSON (.json)",
+  xml: "XML (.xml)",
+};
 
 export default function NewNoteDialog({ existingTags, onClose, onConfirm }: NewNoteDialogProps) {
   const [title, setTitle] = useState("");
+  const [type, setType] = useState<NoteType>("md");
   const [checked, setChecked] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [customTags, setCustomTags] = useState<string[]>([]);
@@ -29,7 +40,7 @@ export default function NewNoteDialog({ existingTags, onClose, onConfirm }: NewN
   }
 
   function confirm(): void {
-    onConfirm(title.trim() || "Untitled", checked);
+    onConfirm(title.trim() || "Untitled", checked, type);
   }
 
   return (
@@ -50,6 +61,22 @@ export default function NewNoteDialog({ existingTags, onClose, onConfirm }: NewN
             autoFocus
             maxLength={160}
           />
+        </label>
+
+        <label className="form-field">
+          <span>Type</span>
+          <select
+            className="dropdown-select"
+            value={type}
+            onChange={(event) => {
+              if (isNoteType(event.target.value)) setType(event.target.value);
+            }}
+            aria-label="Note type"
+          >
+            {NOTE_TYPES.map((noteType) => (
+              <option key={noteType} value={noteType}>{NOTE_TYPE_LABELS[noteType]}</option>
+            ))}
+          </select>
         </label>
 
         <div className="form-field">

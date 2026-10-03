@@ -1,27 +1,27 @@
 interface MobileChromeProps {
-  onMenu: () => void;
   onHome: () => void;
   onCreate: () => void;
   onTags: () => void;
   onSync: () => void;
 }
 
-export function MobileTopBar({ onMenu, onSync }: Pick<MobileChromeProps, "onMenu" | "onSync">) {
+export function MobileTopBar() {
   return (
     <header className="mobile-topbar">
-      <button className="mobile-icon-button" onClick={onMenu} aria-label="Open menu">☰</button>
       <span className="mobile-brand"><img className="brand-logo mobile-logo" src={`${import.meta.env.BASE_URL}logo.jfif`} alt="My Note logo" /> my notes</span>
-      <button className="mobile-icon-button" onClick={onSync} aria-label="Sync">☁</button>
     </header>
   );
 }
 
-export function MobileNav({ onHome, onCreate, onTags, onSync }: Omit<MobileChromeProps, "onMenu">) {
+export function MobileNav({ onHome, onCreate, onTags, onSync }: Pick<MobileChromeProps, "onHome" | "onCreate" | "onTags" | "onSync">) {
   return (
     <nav className="mobile-nav" aria-label="Primary">
       <button onClick={onHome}>
-        <span aria-hidden="true" className="mobile-nav-icon">⌂</span>
-        <span>Home</span>
+        <svg aria-hidden="true" className="mobile-nav-icon" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 3.75h8l4 4v12.5H6z" />
+          <path d="M14 3.75v4h4M9 12h6M9 15.5h6" />
+        </svg>
+        <span>Notes</span>
       </button>
       <button onClick={onTags}>
         <span aria-hidden="true" className="mobile-nav-icon">#</span>

@@ -4,6 +4,7 @@ import type {
   NoteSyncState,
   SyncPreviewItem,
 } from "../types/note";
+import { isNoteType } from "../types/note";
 
 const API_ROOT = "https://www.googleapis.com/drive/v3";
 const UPLOAD_ROOT = "https://www.googleapis.com/upload/drive/v3";
@@ -191,6 +192,7 @@ function importForeignNote(
       id: file.id,
       title: title.slice(0, 160),
       content,
+      type: "md",
       tags: [],
       attachments: [],
       createdAt: stamp,
@@ -558,7 +560,7 @@ function item(
 }
 
 function sameNote(a: Note, b: Note): boolean {
-  return a.title === b.title && a.content === b.content &&
+  return a.title === b.title && a.content === b.content && a.type === b.type &&
     JSON.stringify([...a.tags].sort()) === JSON.stringify([...b.tags].sort()) &&
     JSON.stringify([...a.attachments].sort((x, y) => x.id.localeCompare(y.id))) ===
       JSON.stringify([...b.attachments].sort((x, y) => x.id.localeCompare(y.id)));
@@ -568,6 +570,7 @@ function encodeNote(note: Note): string {
   const metadata = JSON.stringify({
     id: note.id,
     title: note.title,
+    type: note.type,
     tags: note.tags,
     attachments: note.attachments,
     createdAt: note.createdAt,
@@ -602,6 +605,7 @@ function decodeNote(encoded: string): Pick<RemoteNote, "note"> {
     note: {
       id: metadata.id,
       title: metadata.title,
+      type: metadata.type ?? "md",
       tags,
       attachments,
       createdAt: metadata.createdAt,
@@ -619,9 +623,14 @@ function isAttachmentMetadata(value: unknown): value is { id: string; name: stri
     typeof entry.updatedAt === "string";
 }
 
-function isNoteMetadata(value: unknown): value is Pick<Note, "id" | "title" | "createdAt" | "updatedAt"> & { tags?: unknown; attachments?: unknown } {
+function isNoteMetadata(value: unknown): value is Pick<Note, "id" | "title" | "createdAt" | "updatedAt"> & {
+  type?: Note["type"];
+  tags?: unknown;
+  attachments?: unknown;
+} {
   if (typeof value !== "object" || value === null) return false;
   const metadata = value as Record<string, unknown>;
   return typeof metadata.id === "string" && typeof metadata.title === "string" &&
-    typeof metadata.createdAt === "string" && typeof metadata.updatedAt === "string";
+    typeof metadata.createdAt === "string" && typeof metadata.updatedAt === "string" &&
+    (metadata.type === undefined || isNoteType(metadata.type));
 }

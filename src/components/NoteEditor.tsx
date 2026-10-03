@@ -43,12 +43,12 @@ SyntaxHighlighter.registerLanguage("cpp", cpp);
 SyntaxHighlighter.registerLanguage("ini", ini);
 import { deleteAttachmentBlob, getAttachmentBlob, saveAttachmentBlob } from "../services/attachmentBlobs";
 import { randomId } from "../services/noteStorage";
-import { downloadNoteFile, downloadNotePng } from "../services/noteExport";
-import type { Attachment, Note } from "../types/note";
+import { downloadNoteFile, downloadNotePng, noteFileExtension } from "../services/noteExport";
+import { isNoteType, NOTE_TYPES, type Attachment, type Note, type NoteType } from "../types/note";
 
 interface NoteEditorProps {
   note: Note;
-  onUpdate: (updates: Pick<Note, "title" | "content" | "tags" | "attachments">) => void;
+  onUpdate: (updates: Partial<Pick<Note, "title" | "content" | "type" | "tags" | "attachments">>) => void;
   onDelete: (everywhere: boolean) => void;
   onBack: () => void;
   willDeleteRemote: boolean;
@@ -151,13 +151,25 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
     setCodeDropOpen(false);
   }
 
+  function renderContentPreview(): ReactNode {
+    if (!note.content.trim()) return <p className="preview-empty">Nothing to preview yet.</p>;
+    if (note.type === "md") {
+      return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: PreBlock, code: CodeSpan, a: MarkdownLink }}>{note.content}</ReactMarkdown>;
+    }
+    if (note.type === "txt") return <pre className="plain-text-preview">{note.content}</pre>;
+    const language = NOTE_TYPE_LANGUAGES[note.type];
+    return language
+      ? <CodeBlock language={language.label} prismLanguage={language.prism} code={note.content} />
+      : <pre className="plain-text-preview">{note.content}</pre>;
+  }
+
   return (
     <main className="editor">
       <div className="editor-toolbar">
         <div className="toolbar-row toolbar-main">
           <div className="breadcrumb">
             <button className="back-button" onClick={onBack} aria-label="Back to all notes" title="Back to all notes (Esc)">←</button>
-            <span>My notes</span><span className="breadcrumb-separator">/</span><span>{note.title || "Untitled"}</span>
+            <span>My notes</span>
           </div>
           <div className="editor-tabs" role="tablist" aria-label="Editor mode">
             <button
@@ -190,8 +202,8 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
             <button
               className="icon-button"
               onClick={() => downloadNoteFile(note)}
-              aria-label="Download note as Markdown"
-              title="Download as Markdown (.md)"
+              aria-label={`Download note as .${noteFileExtension(note)}`}
+              title={`Download as .${noteFileExtension(note)}`}
             >
               <MdIcon />
             </button>
@@ -217,15 +229,26 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
           <input
             className="title-input toolbar-title"
             value={note.title}
-            onChange={(event) => onUpdate({ title: event.target.value, content: note.content, tags: note.tags, attachments: note.attachments })}
+            onChange={(event) => onUpdate({ title: event.target.value })}
             placeholder="Untitled"
             aria-label="Note title"
             maxLength={160}
           />
-          <TagEditor
-            tags={note.tags}
-            onChange={(tags) => onUpdate({ title: note.title, content: note.content, tags, attachments: note.attachments })}
-          />
+          <label className="note-type-field">
+            <span>Type</span>
+            <select
+              className="dropdown-select"
+              value={note.type}
+              onChange={(event) => {
+                if (isNoteType(event.target.value)) onUpdate({ type: event.target.value });
+              }}
+              aria-label="Note type"
+            >
+              {NOTE_TYPES.map((noteType) => (
+                <option key={noteType} value={noteType}>{NOTE_TYPE_LABELS[noteType]}</option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -233,7 +256,7 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
         {mode === "split" ? (
           <div className="studio-grid">
             <div className="studio-left">
-              <div className="md-toolbar" role="toolbar" aria-label="Markdown formatting">
+              {note.type === "md" && <div className="md-toolbar" role="toolbar" aria-label="Markdown formatting">
                 <button type="button" title="Heading 1" onClick={() => prefixLines("# ")}>H1</button>
                 <button type="button" title="Heading 2" onClick={() => prefixLines("## ")}>H2</button>
                 <button type="button" title="Bold" onClick={() => wrapSelection("**", "**", "bold")}><strong>B</strong></button>
@@ -267,35 +290,31 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
                 </span>
                 <button type="button" title="Table" onClick={() => insertBlock(TABLE_TEMPLATE)}>⊞</button>
                 <button type="button" title="Divider" onClick={() => insertBlock("---")}>―</button>
-              </div>
+              </div>}
               <textarea
                 ref={textAreaRef}
                 className="markdown-input studio-input"
                 value={note.content}
                 onChange={(event) => updateContent(event.target.value)}
-                placeholder="Start writing…"
-                aria-label="Note content in Markdown"
-                spellCheck
+                placeholder={note.type === "md" ? "Start writing…" : `Write ${NOTE_TYPE_LABELS[note.type].split(" ")[0]} content…`}
+                aria-label={`Note content (${note.type})`}
+                spellCheck={note.type === "md" || note.type === "txt"}
               />
             </div>
             <div className="studio-right">
               <div className="markdown-preview studio-preview">
-                {note.content.trim() ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: PreBlock, code: CodeSpan, a: MarkdownLink }}>{note.content}</ReactMarkdown>
-                ) : (
-                  <p className="preview-empty">Live preview appears here.</p>
-                )}
+                {renderContentPreview()}
               </div>
               <AttachmentsBlock
                 note={note}
-                onChange={(attachments) => onUpdate({ title: note.title, content: note.content, tags: note.tags, attachments })}
+                onChange={(attachments) => onUpdate({ attachments })}
               />
             </div>
           </div>
         ) : (
           <>
             {mode !== "preview" && (
-              <div className="md-toolbar" role="toolbar" aria-label="Markdown formatting">
+              note.type === "md" && <div className="md-toolbar" role="toolbar" aria-label="Markdown formatting">
                 <button type="button" title="Heading 1" onClick={() => prefixLines("# ")}>H1</button>
                 <button type="button" title="Heading 2" onClick={() => prefixLines("## ")}>H2</button>
                 <button type="button" title="Bold" onClick={() => wrapSelection("**", "**", "bold")}><strong>B</strong></button>
@@ -337,22 +356,18 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
                 className="markdown-input"
                 value={note.content}
                 onChange={(event) => updateContent(event.target.value)}
-                placeholder={"Start writing...\n\nUse Markdown to format your thoughts."}
-                aria-label="Note content in Markdown"
-                spellCheck
+                placeholder={note.type === "md" ? "Start writing...\n\nUse Markdown to format your thoughts." : `Write ${NOTE_TYPE_LABELS[note.type].split(" ")[0]} content…`}
+                aria-label={`Note content (${note.type})`}
+                spellCheck={note.type === "md" || note.type === "txt"}
               />
             ) : (
               <div className="markdown-preview">
-                {note.content.trim() ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: PreBlock, code: CodeSpan, a: MarkdownLink }}>{note.content}</ReactMarkdown>
-                ) : (
-                  <p className="preview-empty">Nothing to preview yet.</p>
-                )}
+                {renderContentPreview()}
               </div>
             )}
             <AttachmentsBlock
               note={note}
-              onChange={(attachments) => onUpdate({ title: note.title, content: note.content, tags: note.tags, attachments })}
+              onChange={(attachments) => onUpdate({ attachments })}
             />
           </>
         )}
@@ -361,7 +376,7 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
       <div className="editor-footer">
         <span><strong>{note.content.trim() ? note.content.trim().split(/\s+/).length : 0}</strong> words</span>
         <span>Edited {formatRelativeDate(note.updatedAt)}</span>
-        <span>Markdown</span>
+        <span>{NOTE_TYPE_LABELS[note.type]}</span>
       </div>
 
       {confirmDelete && (
@@ -382,54 +397,6 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
         </div>
       )}
     </main>
-  );
-}
-
-function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
-  const [draft, setDraft] = useState("");
-
-  function commit(value: string): void {
-    const cleaned = value.trim().replace(/\s+/g, " ").slice(0, 24);
-    if (cleaned && !tags.some((tag) => tag.toLowerCase() === cleaned.toLowerCase())) {
-      onChange([...tags, cleaned]);
-    }
-    setDraft("");
-  }
-
-  function remove(name: string): void {
-    onChange(tags.filter((tag) => tag !== name));
-  }
-
-  return (
-    <div className="tag-editor" aria-label="Note tags">
-      {tags.map((tag) => (
-        <span key={tag} className="tag-pill">
-          #{tag}
-          <button type="button" onClick={() => remove(tag)} aria-label={`Remove tag ${tag}`}>×</button>
-        </span>
-      ))}
-      <input
-        className="tag-input"
-        value={draft}
-        onChange={(event) => {
-          const value = event.target.value;
-          if (value.includes(",")) commit(value.replace(",", ""));
-          else setDraft(value);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === "Tab") {
-            event.preventDefault();
-            commit(draft);
-          } else if (event.key === "Backspace" && draft === "" && tags.length > 0) {
-            remove(tags[tags.length - 1]);
-          }
-        }}
-        onBlur={() => { if (draft.trim()) commit(draft); }}
-        placeholder={tags.length === 0 ? "+ Add tags (Enter)" : "+ Tag"}
-        aria-label="Add a tag"
-        maxLength={24}
-      />
-    </div>
   );
 }
 
@@ -600,6 +567,22 @@ const CODE_ALIASES: Record<string, string> = {
   py: "python",
   rb: "ruby",
   kt: "kotlin",
+};
+
+const NOTE_TYPE_LABELS: Record<NoteType, string> = {
+  md: "Markdown (.md)",
+  txt: "Text (.txt)",
+  csharp: "C# (.cs)",
+  sql: "SQL (.sql)",
+  json: "JSON (.json)",
+  xml: "XML (.xml)",
+};
+
+const NOTE_TYPE_LANGUAGES: Partial<Record<NoteType, { label: string; prism: string }>> = {
+  csharp: { label: "C#", prism: "csharp" },
+  sql: { label: "SQL", prism: "sql" },
+  json: { label: "JSON", prism: "json" },
+  xml: { label: "XML", prism: "markup" },
 };
 
 const SUPPORTED_LANGUAGES = new Set([

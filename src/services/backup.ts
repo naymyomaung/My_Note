@@ -1,4 +1,4 @@
-import type { Note } from "../types/note";
+import { isNoteType, type Note } from "../types/note";
 
 interface NoteBackup {
   format: "my-note-backup";
@@ -43,7 +43,12 @@ export async function readBackup(file: File): Promise<Note[]> {
   if (new Set(notes.map((note) => note.id)).size !== notes.length) {
     throw new Error("This backup contains duplicate note identifiers.");
   }
-  return notes.map((note) => ({ ...note, tags: [...(note.tags ?? [])], attachments: [...(note.attachments ?? [])] }));
+  return notes.map((note) => ({
+    ...note,
+    type: note.type ?? "md",
+    tags: [...(note.tags ?? [])],
+    attachments: [...(note.attachments ?? [])],
+  }));
 }
 
 function isBackup(value: unknown): value is NoteBackup {
@@ -59,6 +64,7 @@ function isNote(value: unknown): value is Note {
     typeof note.id === "string" &&
     typeof note.title === "string" &&
     typeof note.content === "string" &&
+    (note.type === undefined || isNoteType(note.type)) &&
     (note.tags === undefined || (Array.isArray(note.tags) && note.tags.every((tag) => typeof tag === "string"))) &&
     (note.attachments === undefined || (Array.isArray(note.attachments) && note.attachments.every(isAttachment))) &&
     typeof note.createdAt === "string" &&

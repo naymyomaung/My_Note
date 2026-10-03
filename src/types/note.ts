@@ -1,11 +1,19 @@
+export const NOTE_TYPES = ["md", "txt", "csharp", "sql", "json", "xml"] as const;
+export type NoteType = (typeof NOTE_TYPES)[number];
+
 export interface Note {
   id: string;
   title: string;
   content: string;
+  type: NoteType;
   tags: string[];
   attachments: Attachment[];
   createdAt: string;
   updatedAt: string;
+}
+
+export function isNoteType(value: unknown): value is NoteType {
+  return typeof value === "string" && NOTE_TYPES.some((noteType) => noteType === value);
 }
 
 export interface Attachment {

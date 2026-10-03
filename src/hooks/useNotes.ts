@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { loadNotes, randomId, saveNotes } from "../services/noteStorage";
-import type { Note } from "../types/note";
+import type { Note, NoteType } from "../types/note";
 
 interface NotesState {
   notes: Note[];
@@ -33,12 +33,13 @@ export function useNotes() {
     }
   }, [state.notes, state.error]);
 
-  function createNote(initial?: { title?: string; tags?: string[] }): string {
+  function createNote(initial?: { title?: string; tags?: string[]; type?: NoteType }): string {
     const now = new Date().toISOString();
     const note: Note = {
       id: randomId(),
       title: initial?.title?.trim() || "Untitled",
       content: "",
+      type: initial?.type ?? "md",
       tags: [...(initial?.tags ?? [])],
       attachments: [],
       createdAt: now,
@@ -52,7 +53,7 @@ export function useNotes() {
     return note.id;
   }
 
-  function updateNote(id: string, updates: Pick<Note, "title" | "content" | "tags" | "attachments">): void {
+  function updateNote(id: string, updates: Partial<Pick<Note, "title" | "content" | "type" | "tags" | "attachments">>): void {
     setState((current) => ({
       ...current,
       error: current.loadFailed ? current.error : null,

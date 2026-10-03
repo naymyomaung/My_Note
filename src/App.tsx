@@ -8,6 +8,61 @@ import { MobileNav, MobileTopBar } from "./components/MobileChrome";
 import { useGoogleDriveSync } from "./hooks/useGoogleDriveSync";
 import { useNotes } from "./hooks/useNotes";
 import { loadKnownTags, saveKnownTags } from "./services/noteStorage";
+import type { NoteType } from "./types/note";
+
+function ErrorBanner() {
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => {
+    function onError(event: ErrorEvent): void {
+      setMessage(`Error: ${event.message || "something failed"}`);
+    }
+    function onRejection(event: PromiseRejectionEvent): void {
+      const reason = event.reason as { message?: string } | null;
+      setMessage(`Error: ${reason?.message ?? String(event.reason) ?? "something failed"}`);
+    }
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
+  if (!message) return null;
+  return (
+    <button className="error-banner" onClick={() => setMessage(null)} title="Tap to dismiss">
+      {message} — tap to dismiss
+    </button>
+  );
+}
+
+function TapDebug() {
+  const [log, setLog] = useState<string[]>([]);
+  const enabled = new URLSearchParams(window.location.search).has("debug");
+  useEffect(() => {
+    if (!enabled) return;
+    function push(event: Event): void {
+      const target = event.target as HTMLElement | null;
+      const cls = typeof target?.className === "string" ? target.className.split(" ").slice(0, 2).join(".") : "";
+      const entry = `${event.type} ${target ? target.tagName.toLowerCase() : "?"}${cls ? `.${cls}` : ""}`;
+      setLog((current) => [entry, ...current].slice(0, 6));
+    }
+    const types = ["pointerdown", "touchstart", "click"];
+    for (const type of types) window.addEventListener(type, push, { passive: true, capture: true });
+    return () => {
+      for (const type of types) window.removeEventListener(type, push);
+    };
+  }, [enabled]);
+  if (!enabled) return null;
+  return (
+    <div className="tap-debug" aria-hidden="true">
+      <div>w={window.innerWidth} dpr={window.devicePixelRatio} touch={"ontouchstart" in window ? "yes" : "no"}</div>
+      {log.map((entry, index) => (
+        <div key={`${index}-${entry}`}>{entry}</div>
+      ))}
+      {log.length === 0 && <div>tap anywhere…</div>}
+    </div>
+  );
+}
 
 export default function App() {
   const { notes, error, createNote, updateNote, deleteNote, replaceNotes } = useNotes();
@@ -15,8 +70,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showSync, setShowSync] = useState(false);
+  const [showCreateTagDialog, setShowCreateTagDialog] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [showNewNote, setShowNewNote] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -144,15 +199,13 @@ export default function App() {
 
   function handleCreate(): void {
     setShowNewNote(true);
-    setDrawerOpen(false);
   }
 
-  function confirmCreate(title: string, tags: string[]): void {
-    setSelectedId(createNote({ title, tags }));
+  function confirmCreate(title: string, tags: string[], type: NoteType): void {
+    setSelectedId(createNote({ title, tags, type }));
     setSearch("");
     setSelectedTag(null);
     setShowNewNote(false);
-    setDrawerOpen(false);
     drive.invalidatePreview();
   }
 
@@ -160,7 +213,6 @@ export default function App() {
     setSelectedId(null);
     setSelectedTag(null);
     setSearch("");
-    setDrawerOpen(false);
   }
 
   function handleDelete(everywhere: boolean): void {
@@ -235,9 +287,10 @@ export default function App() {
   }, [notes, selectedId]);
 
   return (
-    <div className={`app-shell${sidebarOpen ? "" : " sidebar-hidden"}${drawerOpen ? " drawer-open" : ""}`}>
-      <MobileTopBar onMenu={() => setDrawerOpen(true)} onSync={() => { setShowSync(true); setActionError(null); }} />
-      {drawerOpen && <div className="drawer-scrim" role="presentation" onClick={() => setDrawerOpen(false)} />}
+    <div className={`app-shell${sidebarOpen ? "" : " sidebar-hidden"}`}>
+      <ErrorBanner />
+      <TapDebug />
+      <MobileTopBar />
       {!sidebarOpen && (
         <button className="sidebar-show" onClick={() => setSidebarOpen(true)} aria-label="Show sidebar" title="Show sidebar">☰</button>
       )}
@@ -246,10 +299,13 @@ export default function App() {
         onSearchChange={setSearch}
         onCreate={handleCreate}
         onOpenSync={() => { setShowSync(true); setActionError(null); }}
-        onToggleSidebar={() => { setSidebarOpen(false); setDrawerOpen(false); }}
+        onToggleSidebar={() => setSidebarOpen(false)}
         tagRows={tagRows}
         selectedTag={selectedTag}
-        onSelectTag={(tag) => { setSelectedTag(tag); setSelectedId(null); setDrawerOpen(false); }}
+        onSelectTag={(tag) => { setSelectedTag(tag); setSelectedId(null); }}
+        showCreateTagDialog={showCreateTagDialog}
+        onOpenCreateTagDialog={() => setShowCreateTagDialog(true)}
+        onCloseCreateTagDialog={() => setShowCreateTagDialog(false)}
         onCreateTag={handleCreateTag}
         onRenameTag={handleRenameTag}
         onDeleteTag={handleDeleteTag}
@@ -258,7 +314,7 @@ export default function App() {
       <MobileNav
         onHome={goHome}
         onCreate={handleCreate}
-        onTags={() => setDrawerOpen(true)}
+        onTags={() => setShowCreateTagDialog(true)}
         onSync={() => { setShowSync(true); setActionError(null); }}
       />
       <section className="workspace">
@@ -287,6 +343,8 @@ export default function App() {
             onPage={setPage}
             selectedTag={selectedTag}
             onClearTag={() => setSelectedTag(null)}
+            tagRows={tagRows}
+            onSelectTag={(tag) => setSelectedTag(tag)}
             onSelect={setSelectedId}
             onCreate={handleCreate}
             onDeleteNote={handleGridDelete}

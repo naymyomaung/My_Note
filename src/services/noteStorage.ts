@@ -1,4 +1,4 @@
-import type { GoogleDriveSettings, Note, NoteSyncState } from "../types/note";
+import { isNoteType, type GoogleDriveSettings, type Note, type NoteSyncState } from "../types/note";
 
 const STORAGE_KEY = "my-note.notes.v1";
 const SYNC_STATE_KEY = "my-note.sync.v1";
@@ -28,7 +28,12 @@ export function loadNotes(): Note[] {
     throw new Error("Saved notes have an invalid format.");
   }
 
-  return parsed.map((note) => ({ ...note, tags: [...(note.tags ?? [])], attachments: [...(note.attachments ?? [])] }));
+  return parsed.map((note) => ({
+    ...note,
+    type: note.type ?? "md",
+    tags: [...(note.tags ?? [])],
+    attachments: [...(note.attachments ?? [])],
+  }));
 }
 
 export function loadSyncState(): NoteSyncState {
@@ -36,7 +41,18 @@ export function loadSyncState(): NoteSyncState {
   if (stored === null) return EMPTY_SYNC_STATE;
   const parsed: unknown = JSON.parse(stored);
   if (!isSyncState(parsed)) throw new Error("Saved sync state has an invalid format.");
-  return { ...parsed, attachments: { ...(parsed.attachments ?? {}) } };
+  return {
+    ...parsed,
+    synced: Object.fromEntries(Object.entries(parsed.synced).map(([id, entry]) => [
+      id,
+      { ...entry, note: { ...entry.note, type: entry.note.type ?? "md" } },
+    ])),
+    deleted: Object.fromEntries(Object.entries(parsed.deleted).map(([id, entry]) => [
+      id,
+      { ...entry, baseline: { ...entry.baseline, type: entry.baseline.type ?? "md" } },
+    ])),
+    attachments: { ...(parsed.attachments ?? {}) },
+  };
 }
 
 export function saveNotes(notes: Note[]): void {
@@ -88,6 +104,7 @@ function isNote(value: unknown): value is Note {
     typeof note.id === "string" &&
     typeof note.title === "string" &&
     typeof note.content === "string" &&
+    (note.type === undefined || isNoteType(note.type)) &&
     (note.tags === undefined || (Array.isArray(note.tags) && note.tags.every((tag) => typeof tag === "string"))) &&
     (note.attachments === undefined || (Array.isArray(note.attachments) && note.attachments.every(isAttachment))) &&
     typeof note.createdAt === "string" &&

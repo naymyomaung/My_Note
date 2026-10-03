@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface TagRow {
   name: string;
@@ -14,6 +15,9 @@ interface SidebarProps {
   tagRows: TagRow[];
   selectedTag: string | null;
   onSelectTag: (tag: string | null) => void;
+  showCreateTagDialog: boolean;
+  onOpenCreateTagDialog: () => void;
+  onCloseCreateTagDialog: () => void;
   onCreateTag: (tag: string) => void;
   onRenameTag: (oldName: string, newName: string) => void;
   onDeleteTag: (tag: string) => void;
@@ -29,12 +33,14 @@ export default function NoteList({
   tagRows,
   selectedTag,
   onSelectTag,
+  showCreateTagDialog,
+  onOpenCreateTagDialog,
+  onCloseCreateTagDialog,
   onCreateTag,
   onRenameTag,
   onDeleteTag,
   isOnline,
 }: SidebarProps) {
-  const [showTagDialog, setShowTagDialog] = useState(false);
   const [renameTag, setRenameTag] = useState<string | null>(null);
   const [pendingDeleteTag, setPendingDeleteTag] = useState<string | null>(null);
   const pendingDeleteCount = pendingDeleteTag !== null
@@ -66,7 +72,7 @@ export default function NoteList({
       </label>
 
       <div className="tag-new-row">
-        <button className="tag-new-button" onClick={() => setShowTagDialog(true)} title="New tag folder" aria-label="New tag folder"><span aria-hidden="true">＋</span> New tag</button>
+        <button className="tag-new-button" onClick={onOpenCreateTagDialog} title="New tag folder" aria-label="New tag folder"><span aria-hidden="true">＋</span> New tag</button>
       </div>
 
       <nav className="tag-list" aria-label="Tag folders">
@@ -120,12 +126,13 @@ export default function NoteList({
         </div>
       </div>
 
-      {showTagDialog && (
+      {showCreateTagDialog && createPortal(
         <TagDialog
           existing={tagRows.map((row) => row.name)}
-          onClose={() => setShowTagDialog(false)}
-          onCreate={(name) => { onCreateTag(name); setShowTagDialog(false); }}
-        />
+          onClose={onCloseCreateTagDialog}
+          onCreate={(name) => { onCreateTag(name); onCloseCreateTagDialog(); }}
+        />,
+        document.body,
       )}
 
       {renameTag !== null && (
