@@ -57,6 +57,7 @@ interface NoteEditorProps {
 export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDeleteRemote }: NoteEditorProps) {
   const [mode, setMode] = useState<"write" | "split" | "preview">("split");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [imageExportError, setImageExportError] = useState<string | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -71,6 +72,15 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
 
   function updateContent(content: string): void {
     onUpdate({ title: note.title, content, tags: note.tags, attachments: note.attachments });
+  }
+
+  async function handleDownloadImage(): Promise<void> {
+    setImageExportError(null);
+    try {
+      await downloadNotePng(note);
+    } catch (error) {
+      setImageExportError(error instanceof Error ? error.message : "Could not download the note preview image.");
+    }
   }
 
   function wrapSelection(before: string, after: string, placeholder: string): void {
@@ -209,7 +219,7 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
             </button>
             <button
               className="icon-button"
-              onClick={() => downloadNotePng(note)}
+              onClick={() => void handleDownloadImage()}
               aria-label="Download note as image"
               title="Download as image (.png)"
             >
@@ -225,6 +235,7 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
             </button>
           </div>
         </div>
+        {imageExportError && <p className="backup-error" role="alert">{imageExportError}</p>}
         <div className="toolbar-row title-tag-row">
           <input
             className="title-input toolbar-title"

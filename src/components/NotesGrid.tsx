@@ -25,6 +25,16 @@ interface NotesGridProps {
 export default function NotesGrid({ notes, totalCount, filteredCount, search, onSearchChange, page, pageCount, onPage, selectedTag, onClearTag, tagRows, onSelectTag, onSelect, onCreate, onDeleteNote }: NotesGridProps) {
   const pages = pageNumbers(page, pageCount);
   const [pendingDelete, setPendingDelete] = useState<Note | null>(null);
+  const [imageExportError, setImageExportError] = useState<string | null>(null);
+
+  async function handleDownloadImage(note: Note): Promise<void> {
+    setImageExportError(null);
+    try {
+      await downloadNotePng(note);
+    } catch (error) {
+      setImageExportError(error instanceof Error ? error.message : "Could not download the note preview image.");
+    }
+  }
 
   return (
     <main className="notes-home">
@@ -38,6 +48,7 @@ export default function NotesGrid({ notes, totalCount, filteredCount, search, on
           <span aria-hidden="true">＋</span> New note
         </button>
       </div>
+      {imageExportError && <p className="backup-error" role="alert">{imageExportError}</p>}
 
       <div className="notes-filter-bar">
         <label className="search-box notes-search">
@@ -109,7 +120,7 @@ export default function NotesGrid({ notes, totalCount, filteredCount, search, on
                     <button
                       type="button"
                       className="card-icon-button card-image"
-                      onClick={() => downloadNotePng(note)}
+                      onClick={() => void handleDownloadImage(note)}
                       title="Download as image (.png)"
                       aria-label={`Download ${note.title || "Untitled"} as image`}
                     ><ImageIcon /></button>

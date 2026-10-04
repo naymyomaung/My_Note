@@ -52,6 +52,19 @@ async function renderPreviewMarkup(note: Note): Promise<string> {
           remarkPlugins: [remarkGfm],
           components: {
             img: ({ alt }) => React.createElement("span", { className: "export-image-placeholder" }, `Image: ${alt || "image"}`),
+            a: ({ children }) => React.createElement(
+              "span",
+              {
+                style: {
+                  padding: "0 3px",
+                  background: "#92efff",
+                  borderBottom: "2px solid #141414",
+                  color: "#141414",
+                  fontWeight: 700,
+                },
+              },
+              children,
+            ),
           },
         },
         note.content,
@@ -72,22 +85,6 @@ async function renderPreviewMarkup(note: Note): Promise<string> {
   );
 }
 
-function getPreviewStyles(): string {
-  const css = Array.from(document.styleSheets)
-    .flatMap((sheet) => Array.from(sheet.cssRules))
-    .filter((rule): rule is CSSStyleRule => "selectorText" in rule)
-    .filter((rule) => /\.(?:markdown-preview|plain-text-preview|code-block|code-block-bar|code-block-lang|preview-empty)\b/.test(rule.selectorText))
-    .map((rule) => rule.cssText)
-    .join("\n")
-    .replace(/&/g, "&amp;");
-  const rootStyle = getComputedStyle(document.documentElement);
-  const variables = Array.from({ length: rootStyle.length }, (_, index) => rootStyle.item(index))
-    .filter((name) => name.startsWith("--"))
-    .map((name) => `${name}:${rootStyle.getPropertyValue(name)};`)
-    .join("");
-  return `${css}\n:root{${variables}}`;
-}
-
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -97,49 +94,154 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+interface PreviewBlock {
+  text: string;
+  kind: "heading" | "paragraph" | "code" | "quote" | "list" | "table";
+  headingLevel?: number;
+}
+
+function getBlockText(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+  if (!(node instanceof Element)) return "";
+  if (node.tagName === "BR") return "\n";
+  if (node.tagName === "IMG") return `Image: ${node.getAttribute("alt") || "image"}`;
+  return Array.from(node.childNodes, getBlockText).join("");
+}
+
+function getPreviewBlocks(markup: string): PreviewBlock[] {
+  const parsed = new DOMParser().parseFromString(markup, "text/html");
+  const blocks: PreviewBlock[] = [];
+  function visit(node: Element): void {
+    const tag = node.tagName.toLowerCase();
+    if (/^h[1-6]$/.test(tag)) {
+      blocks.push({ text: getBlockText(node), kind: "heading", headingLevel: Number(tag[1]) });
+    } else if (tag === "pre") {
+      blocks.push({ text: getBlockText(node), kind: "code" });
+    } else if (tag === "blockquote") {
+      blocks.push({ text: getBlockText(node), kind: "quote" });
+    } else if (tag === "ul" || tag === "ol") {
+      const items = Array.from(node.children).filter((child) => child.tagName.toLowerCase() === "li");
+      items.forEach((item, index) => {
+        blocks.push({ text: `${tag === "ol" ? `${index + 1}.` : "•"} ${getBlockText(item)}`, kind: "list" });
+      });
+    } else if (tag === "table") {
+      Array.from(node.querySelectorAll("tr")).forEach((row) => {
+        blocks.push({
+          text: Array.from(row.querySelectorAll("th, td"), getBlockText).join("  |  "),
+          kind: "table",
+        });
+      });
+    } else if (tag === "hr") {
+      blocks.push({ text: "────────────────────────────────────────────────────────", kind: "paragraph" });
+    } else if (tag === "p") {
+      blocks.push({ text: getBlockText(node), kind: "paragraph" });
+    } else {
+      Array.from(node.children).forEach(visit);
+    }
+  }
+  Array.from(parsed.body.children).forEach(visit);
+  return blocks;
+}
+
+function escapeSvgText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function wrapPreviewText(value: string, maxCharacters: number): string[] {
+  const lines: string[] = [];
+  for (const paragraph of value.split(/\r?\n/)) {
+    let line = "";
+    for (let word of paragraph.split(/\s+/).filter(Boolean)) {
+      if (line && line.length + word.length + 1 > maxCharacters) {
+        lines.push(line);
+        line = "";
+      }
+      while (word.length > maxCharacters) {
+        if (line) {
+          lines.push(line);
+          line = "";
+        }
+        lines.push(word.slice(0, maxCharacters));
+        word = word.slice(maxCharacters);
+      }
+      line = line ? `${line} ${word}` : word;
+    }
+    lines.push(line);
+  }
+  return lines.length ? lines : [""];
+}
+
 export async function downloadNotePng(note: Note): Promise<void> {
   const width = 1200;
-  const stage = document.createElement("div");
-  stage.style.cssText = `position:fixed;left:-10000px;top:0;width:${width}px;padding:44px;box-sizing:border-box;background:#f5eee3;`;
-  const preview = document.createElement("div");
-  preview.innerHTML = await renderPreviewMarkup(note);
-  const card = document.createElement("div");
-  card.style.cssText = "padding:36px;background:#fff;border:3px solid #141414;border-radius:18px;box-shadow:8px 8px 0 #ffd02f;";
-  const title = document.createElement("h1");
-  title.textContent = note.title || "Untitled";
-  title.style.cssText = "margin:0 0 22px;padding:0 0 16px;border-bottom:3px solid #ff90e8;color:#141414;font:900 32px/1.25 Arial,sans-serif;overflow-wrap:anywhere;";
-  preview.className = "markdown-preview";
-  preview.style.cssText = "box-sizing:border-box;width:100%;min-height:0;height:auto;max-height:none;margin:0;padding:24px 22px;overflow:visible;";
-  card.append(title, preview);
-  stage.appendChild(card);
-  document.body.appendChild(stage);
+  const contentWidth = 1024;
+  const markup = await renderPreviewMarkup(note);
+  const blocks = getPreviewBlocks(markup);
+  const titleLines = wrapPreviewText(note.title || "Untitled", 52);
+  const titleLineHeight = 38;
+  const dividerY = 102 + (titleLines.length - 1) * titleLineHeight + 25;
+  let y = dividerY + 52;
+  const svgParts = [
+    `<rect width="${width}" height="100%" fill="#f5eee3"/>`,
+    `<rect x="44" y="44" width="1112" height="100%" rx="18" fill="#fff" stroke="#141414" stroke-width="3"/>`,
+  ];
+  titleLines.forEach((line, index) => {
+    svgParts.push(`<text x="82" y="${102 + index * titleLineHeight}" fill="#141414" font-family="Arial,sans-serif" font-size="32" font-weight="900">${escapeSvgText(line)}</text>`);
+  });
+  svgParts.push(`<path d="M82 ${dividerY} H1118" stroke="#ff90e8" stroke-width="3"/>`);
 
-  try {
-    const height = Math.max(220, stage.scrollHeight);
-    const styles = getPreviewStyles();
-    const styleTag = `<style>${styles}</style>`;
-    const content = `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;padding:44px;box-sizing:border-box;overflow:hidden;background:#f5eee3;">${styleTag}${stage.innerHTML}</div>`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%">${content}</foreignObject></svg>`;
-    const image = await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Could not create a canvas for the note preview image.");
-    context.drawImage(image, 0, 0);
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((result) => {
-        if (result) resolve(result);
-        else reject(new Error("Could not create the note preview PNG."));
-      }, "image/png");
+  for (const block of blocks) {
+    const kind = block.kind;
+    const level = block.headingLevel ?? 2;
+    const fontSize = kind === "heading"
+      ? level === 1 ? 25 : level === 2 ? 21 : 18
+      : kind === "code" ? 13 : 16;
+    const lineHeight = kind === "heading" ? fontSize + 10 : kind === "code" ? 21 : 25;
+    const maxCharacters = Math.floor(contentWidth / (fontSize * 0.58));
+    const lines = wrapPreviewText(block.text, maxCharacters);
+    if (kind === "heading" && level === 1) {
+      const boxY = y - fontSize - 8;
+      const boxHeight = lines.length * lineHeight + 16;
+      svgParts.push(`<rect x="76" y="${boxY}" width="${Math.min(1048, Math.max(240, block.text.length * fontSize * 0.58 + 40))}" height="${boxHeight}" rx="9" fill="#ffd02f" stroke="#141414" stroke-width="2"/>`);
+    } else if (kind === "code" || kind === "quote") {
+      const rectY = y - 17;
+      const rectHeight = lines.length * lineHeight + 18;
+      svgParts.push(`<rect x="76" y="${rectY}" width="1048" height="${rectHeight}" rx="8" fill="${kind === "code" ? "#141414" : "#fff6e9"}" stroke="${kind === "code" ? "#141414" : "#ff90e8"}" stroke-width="2"/>`);
+    }
+    const fill = kind === "code" ? "#ffd02f" : "#292820";
+    const weight = kind === "heading" ? "900" : "400";
+    const x = kind === "list" ? 96 : 88;
+    lines.forEach((line) => {
+      svgParts.push(`<text x="${x}" y="${y}" fill="${fill}" font-family="${kind === "code" ? "Consolas,monospace" : "Arial,sans-serif"}" font-size="${fontSize}" font-weight="${weight}">${escapeSvgText(line)}</text>`);
+      y += lineHeight;
     });
-    const pngUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = pngUrl;
-    anchor.download = `${safeFileStem(note.title)}.png`;
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(pngUrl), 1_000);
-  } finally {
-    stage.remove();
+    y += kind === "heading" ? level === 1 ? 20 : 14 : 12;
   }
+  const height = Math.max(260, y + 48);
+  svgParts[1] = `<rect x="44" y="44" width="1112" height="${height - 88}" rx="18" fill="#fff" stroke="#141414" stroke-width="3"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${svgParts.join("")}</svg>`;
+  const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  let image: HTMLImageElement;
+  try {
+    image = await loadImage(svgUrl);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Could not create a canvas for the note preview image.");
+  context.drawImage(image, 0, 0);
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) resolve(result);
+      else reject(new Error("Could not create the note preview PNG."));
+    }, "image/png");
+  });
+  const pngUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = pngUrl;
+  anchor.download = `${safeFileStem(note.title)}.png`;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(pngUrl), 1_000);
 }
