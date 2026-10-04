@@ -273,7 +273,7 @@ kbd {
   gap: 8px;
   padding: 10px 37px;
   border-bottom: 3px solid var(--ink);
-  background: var(--cyan);
+  background: #fff;
   position: sticky;
   top: 0;
   z-index: 4;
@@ -911,10 +911,8 @@ kbd {
 .notes-grid .note-card:nth-child(n+7) { animation-delay: .3s; }
 .note-card:hover { transform: translate(-3px, -5px) rotate(0deg) !important; box-shadow: 7px 8px 0 var(--ink); }
 .note-card:active { transform: translate(2px, 2px) !important; box-shadow: 0 0 0 var(--ink); }
-.note-card::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 10px; background: var(--yellow); border-bottom: 3px solid var(--ink); transition: height .14s ease, background .14s ease; }
-.notes-grid .note-card:nth-child(3n+2)::before { background: var(--pink); }
-.notes-grid .note-card:nth-child(3n)::before { background: var(--cyan); }
-.note-card:hover::before { height: 14px; background: var(--green); }
+.note-card::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 10px; background: #fff; border-bottom: 3px solid var(--ink); transition: height .14s ease; }
+.note-card:hover::before { height: 14px; }
 .note-card-pin { position: absolute; top: 16px; right: 14px; width: 12px; height: 12px; border: 2px solid var(--ink); border-radius: 50%; background: var(--red); box-shadow: 1px 1px 0 var(--ink); }
 .note-card-title { overflow: hidden; margin-top: 10px; font-size: 16px; font-weight: 900; letter-spacing: -.3px; text-overflow: ellipsis; white-space: nowrap; }
 .note-card-snippet { display: block; width: 100%; min-width: 0; min-height: 0; max-height: 6.6em; flex: 0 1 auto; overflow: hidden; color: #55524a; font-size: 12px; font-weight: 500; line-height: 1.65; overflow-wrap: anywhere; }
