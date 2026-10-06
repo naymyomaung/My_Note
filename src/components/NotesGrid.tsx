@@ -1,7 +1,8 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Note } from "../types/note";
 import { downloadNoteFile, downloadNotePng, noteFileExtension } from "../services/noteExport";
-import { NoteContentPreview } from "./NoteEditor";
 
 interface NotesGridProps {
   notes: Note[];
@@ -91,26 +92,9 @@ export default function NotesGrid({ notes, totalCount, filteredCount, search, on
 
       {notes.length > 0 ? (
         <>
-          <div className="notes-grid">
-            {notes.map((note) => (
+          <div className="notes-grid">            {notes.map((note) => (
               <div key={note.id} className="note-card">
-                <div
-                  className="note-card-main"
-                  role="button"
-                  tabIndex={0}
-                  onClick={(event) => {
-                    if (event.target instanceof Element && event.target.closest("a, button, input, textarea, select")) return;
-                    onSelect(note.id);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.target !== event.currentTarget) return;
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      onSelect(note.id);
-                    }
-                  }}
-                  aria-label={`Open ${note.title || "Untitled"}`}
-                >
+                <button className="note-card-main" onClick={() => onSelect(note.id)} aria-label={`Open ${note.title || "Untitled"}`}>
                   <span className="note-card-pin" aria-hidden="true" />
                   <strong className="note-card-title">{note.title || "Untitled"}</strong>
                   {note.tags.length > 0 && (
@@ -121,10 +105,8 @@ export default function NotesGrid({ notes, totalCount, filteredCount, search, on
                       {note.tags.length > 3 && <span className="tag-mini">+{note.tags.length - 3}</span>}
                     </span>
                   )}
-                  <div className="note-card-preview markdown-preview">
-                    <NoteContentPreview note={note} />
-                  </div>
-                </div>
+                  <NoteCardPreview note={note} />
+                </button>
                 <span className="note-card-foot">
                   <span>{formatGridDate(note.updatedAt)}{note.attachments.length > 0 ? ` · 📎${note.attachments.length}` : ""}</span>
                   <span className="note-card-actions">
@@ -229,6 +211,57 @@ function pageNumbers(page: number, pageCount: number): Array<number | "…"> {
     out.push(ordered[index]);
   }
   return out;
+}
+
+function NoteCardPreview({ note }: { note: Note }) {
+  const content = note.content.trim();
+  if (!content) {
+    return <span className="note-card-snippet">Empty note — click to start writing.</span>;
+  }
+
+  const preview = content.length > 600 ? `${content.slice(0, 600)}…` : content;
+  if (note.type === "md") {
+    return (
+      <span className="note-card-snippet note-card-markdown">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ children }) => <span className="card-preview-heading">{children}</span>,
+            h2: ({ children }) => <span className="card-preview-heading">{children}</span>,
+            h3: ({ children }) => <span className="card-preview-heading">{children}</span>,
+            h4: ({ children }) => <span className="card-preview-heading">{children}</span>,
+            h5: ({ children }) => <span className="card-preview-heading">{children}</span>,
+            h6: ({ children }) => <span className="card-preview-heading">{children}</span>,
+            p: ({ children }) => <span className="card-preview-paragraph">{children}</span>,
+            blockquote: ({ children }) => <span className="card-preview-quote">{children}</span>,
+            ul: ({ children }) => <span className="card-preview-list">{children}</span>,
+            ol: ({ children }) => <span className="card-preview-list">{children}</span>,
+            li: ({ children }) => <span className="card-preview-list-item">• {children}</span>,
+            pre: ({ children }) => <span className="card-preview-code">{children}</span>,
+            code: ({ children, className }) => className
+              ? <code className="card-preview-block-code">{children}</code>
+              : <span className="card-preview-inline-code">{children}</span>,
+            a: ({ children }) => <span className="card-preview-link">{children}</span>,
+            img: ({ alt }) => <span className="card-preview-image">Image: {alt || "attachment"}</span>,
+            hr: () => <span className="card-preview-divider" />,
+            table: ({ children }) => <span className="card-preview-table">{children}</span>,
+            thead: ({ children }) => <span>{children}</span>,
+            tbody: ({ children }) => <span>{children}</span>,
+            tr: ({ children }) => <span className="card-preview-table-row">{children}</span>,
+            th: ({ children }) => <span className="card-preview-table-cell">{children}</span>,
+            td: ({ children }) => <span className="card-preview-table-cell">{children}</span>,
+          }}
+        >
+          {preview}
+        </ReactMarkdown>
+      </span>
+    );
+  }
+
+  if (note.type === "csharp" || note.type === "sql" || note.type === "json" || note.type === "xml") {
+    return <span className="note-card-snippet card-preview-code note-card-code-preview"><code>{preview}</code></span>;
+  }
+  return <span className="note-card-snippet">{preview}</span>;
 }
 
 function formatGridDate(value: string): string {

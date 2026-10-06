@@ -758,7 +758,7 @@ kbd {
 .tag-check-row:hover { background: #fff6e9; border-color: var(--ink); transform: translateX(3px); }
 .tag-check-row input { width: 17px; height: 17px; margin: 0; accent-color: #ff90e8; cursor: pointer; }
 .note-card-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-.tag-mini { padding: 1px 6px; border: 2px solid var(--ink); border-radius: 20px; background: var(--cyan); font-size: 8px; font-weight: 800; }
+.tag-mini { padding: 2px 8px; border: 2px solid var(--ink); border-radius: 20px; background: var(--cyan); font-size: 9px; font-weight: 800; }
 .notes-grid .note-card:nth-child(3n+2) .tag-mini { background: var(--pink); }
 .notes-grid .note-card:nth-child(3n) .tag-mini { background: var(--yellow); }
 .active-filter { margin-top: 10px; cursor: pointer; font-size: 12px; }
@@ -851,7 +851,7 @@ kbd {
 .note-card {
   position: relative;
   display: flex;
-  min-height: 300px;
+  min-height: 230px;
   flex-direction: column;
   padding: 0;
   border: 3px solid var(--ink);
@@ -866,7 +866,6 @@ kbd {
   display: flex;
   flex: 1;
   min-width: 0;
-  width: 100%;
   min-height: 0;
   flex-direction: column;
   gap: 8px;
@@ -915,40 +914,24 @@ kbd {
 .note-card::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 10px; background: #fff; border-bottom: 3px solid var(--ink); transition: height .14s ease; }
 .note-card:hover::before { height: 14px; }
 .note-card-pin { position: absolute; top: 16px; right: 14px; width: 12px; height: 12px; border: 2px solid var(--ink); border-radius: 50%; background: var(--red); box-shadow: 1px 1px 0 var(--ink); }
-.note-card-title { overflow-wrap: anywhere; margin-top: 10px; font-size: 14px; font-weight: 900; letter-spacing: -.2px; white-space: normal; }
-.note-card-preview {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-  max-height: 12em;
-  flex: 0 1 auto;
-  overflow: auto;
-  margin: 0;
-  padding: 8px 10px;
-  border: 2px solid var(--ink);
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: none;
-  font-size: 10px;
-  line-height: 1.5;
-}
-.note-card-preview .plain-text-preview { margin: 0; padding: 0; font-size: inherit; line-height: inherit; }
-.note-card-preview h1 { padding: 2px 8px; font-size: 18px; }
-.note-card-preview h2 { font-size: 16px; }
-.note-card-preview h3 { font-size: 14px; }
-.note-card-preview h4,
-.note-card-preview h5,
-.note-card-preview h6 { font-size: 12px; }
-.note-card-preview p { margin: .45em 0; }
-.note-card-preview blockquote { margin: .6em 0; padding: 6px 9px; }
-.note-card-preview ul,
-.note-card-preview ol { padding-left: 18px; }
-.note-card-preview th,
-.note-card-preview td { padding: 4px 6px; }
-.note-card-preview .code-block { margin: 0; box-shadow: none; }
-.note-card-preview .code-block-bar { padding: 4px 6px; }
-.note-card-preview .code-copy-button { padding: 2px 6px; }
+.note-card-title { overflow: hidden; margin-top: 10px; font-size: 16px; font-weight: 900; letter-spacing: -.3px; text-overflow: ellipsis; white-space: nowrap; }
+.note-card-snippet { display: block; width: 100%; min-width: 0; min-height: 0; max-height: 6.6em; flex: 0 1 auto; overflow: hidden; color: #55524a; font-size: 12px; font-weight: 500; line-height: 1.65; overflow-wrap: anywhere; }
+.card-preview-paragraph { display: block; margin: 0 0 5px; }
+.card-preview-heading { display: block; margin: 0 0 4px; color: #141414; font-size: 13px; font-weight: 900; line-height: 1.4; }
+.card-preview-quote { display: block; margin: 3px 0; padding-left: 7px; border-left: 3px solid var(--pink); color: #55524a; }
+.card-preview-list { display: block; }
+.card-preview-list-item { display: block; padding-left: 4px; }
+.card-preview-code { display: block; max-width: 100%; overflow: hidden; margin: 3px 0; padding: 5px 7px; border: 0; border-radius: 6px; background: #191b22; color: #f7dc78; font-family: Consolas, "Courier New", monospace; font-size: 10px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.card-preview-block-code { color: inherit; font: inherit; white-space: inherit; }
+.card-preview-inline-code { padding: 1px 4px; border-radius: 4px; background: var(--yellow); color: #141414; font-family: Consolas, "Courier New", monospace; font-size: .92em; }
+.card-preview-link { color: #141414; font-weight: 800; text-decoration: underline; text-decoration-color: var(--cyan); text-decoration-thickness: 2px; }
+.card-preview-image { font-style: italic; }
+.card-preview-divider { display: block; width: 35%; margin: 5px 0; border-top: 2px solid #e8e1d5; }
+.card-preview-table { display: block; }
+.card-preview-table-row { display: flex; gap: 8px; }
+.card-preview-table-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-card-code-preview { box-sizing: border-box; margin: 0; padding: 8px 10px; border: 2px solid #141414; border-radius: 8px; background: #191b22; color: #f7dc78; font-family: Consolas, "Courier New", monospace; font-size: 10px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-card-code-preview code { color: inherit; font: inherit; white-space: inherit; }
 .note-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; row-gap: 8px; margin-top: 6px; padding: 10px 14px 14px; border-top: 2px dashed #14141444; color: #6b6b60; font-size: 10px; font-weight: 700; }
 .note-card-foot > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note-card-open {
@@ -1692,11 +1675,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   .notes-grid .note-card:nth-child(3n+1),
   .notes-grid .note-card:nth-child(3n+2),
   .notes-grid .note-card:nth-child(3n) {
-    min-height: 300px;
+    min-height: 230px;
     transform: none;
   }
   .note-card-main { min-height: 0; padding: 18px 16px 12px; }
   .note-card-title { max-width: calc(100% - 24px); overflow-wrap: anywhere; white-space: normal; }
+  .note-card-snippet { min-height: 0; max-height: 6.6em; }
   .note-card-foot {
     align-items: stretch;
     gap: 10px;
