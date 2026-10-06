@@ -54,6 +54,18 @@ interface NoteEditorProps {
   willDeleteRemote: boolean;
 }
 
+export function NoteContentPreview({ note }: { note: Note }) {
+  if (!note.content.trim()) return <p className="preview-empty">Nothing to preview yet.</p>;
+  if (note.type === "md") {
+    return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: PreBlock, code: CodeSpan, a: MarkdownLink }}>{note.content}</ReactMarkdown>;
+  }
+  if (note.type === "txt") return <pre className="plain-text-preview">{note.content}</pre>;
+  const language = NOTE_TYPE_LANGUAGES[note.type];
+  return language
+    ? <CodeBlock language={language.label} prismLanguage={language.prism} code={note.content} />
+    : <pre className="plain-text-preview">{note.content}</pre>;
+}
+
 export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDeleteRemote }: NoteEditorProps) {
   const [mode, setMode] = useState<"write" | "split" | "preview">("split");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -159,18 +171,6 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
   function insertCodeBlock(fence: string, sample: string): void {
     insertBlock(`\`\`\`${fence}\n${sample}\n\`\`\``);
     setCodeDropOpen(false);
-  }
-
-  function renderContentPreview(): ReactNode {
-    if (!note.content.trim()) return <p className="preview-empty">Nothing to preview yet.</p>;
-    if (note.type === "md") {
-      return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ pre: PreBlock, code: CodeSpan, a: MarkdownLink }}>{note.content}</ReactMarkdown>;
-    }
-    if (note.type === "txt") return <pre className="plain-text-preview">{note.content}</pre>;
-    const language = NOTE_TYPE_LANGUAGES[note.type];
-    return language
-      ? <CodeBlock language={language.label} prismLanguage={language.prism} code={note.content} />
-      : <pre className="plain-text-preview">{note.content}</pre>;
   }
 
   return (
@@ -314,7 +314,7 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
             </div>
             <div className="studio-right">
               <div className="markdown-preview studio-preview">
-                {renderContentPreview()}
+                <NoteContentPreview note={note} />
               </div>
               <AttachmentsBlock
                 note={note}
@@ -373,7 +373,7 @@ export default function NoteEditor({ note, onUpdate, onDelete, onBack, willDelet
               />
             ) : (
               <div className="markdown-preview">
-                {renderContentPreview()}
+                <NoteContentPreview note={note} />
               </div>
             )}
             <AttachmentsBlock
