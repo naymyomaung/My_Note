@@ -758,7 +758,7 @@ kbd {
 .tag-check-row:hover { background: #fff6e9; border-color: var(--ink); transform: translateX(3px); }
 .tag-check-row input { width: 17px; height: 17px; margin: 0; accent-color: #ff90e8; cursor: pointer; }
 .note-card-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-.tag-mini { padding: 2px 8px; border: 2px solid var(--ink); border-radius: 20px; background: var(--cyan); font-size: 9px; font-weight: 800; }
+.tag-mini { padding: 1px 6px; border: 2px solid var(--ink); border-radius: 20px; background: var(--cyan); font-size: 8px; font-weight: 800; }
 .notes-grid .note-card:nth-child(3n+2) .tag-mini { background: var(--pink); }
 .notes-grid .note-card:nth-child(3n) .tag-mini { background: var(--yellow); }
 .active-filter { margin-top: 10px; cursor: pointer; font-size: 12px; }
@@ -851,7 +851,7 @@ kbd {
 .note-card {
   position: relative;
   display: flex;
-  min-height: 230px;
+  min-height: 300px;
   flex-direction: column;
   padding: 0;
   border: 3px solid var(--ink);
@@ -915,13 +915,13 @@ kbd {
 .note-card::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 10px; background: #fff; border-bottom: 3px solid var(--ink); transition: height .14s ease; }
 .note-card:hover::before { height: 14px; }
 .note-card-pin { position: absolute; top: 16px; right: 14px; width: 12px; height: 12px; border: 2px solid var(--ink); border-radius: 50%; background: var(--red); box-shadow: 1px 1px 0 var(--ink); }
-.note-card-title { overflow-wrap: anywhere; margin-top: 10px; font-size: 16px; font-weight: 900; letter-spacing: -.3px; white-space: normal; }
+.note-card-title { overflow-wrap: anywhere; margin-top: 10px; font-size: 14px; font-weight: 900; letter-spacing: -.2px; white-space: normal; }
 .note-card-preview {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
   min-height: 0;
-  max-height: 7.5em;
+  max-height: 12em;
   flex: 0 1 auto;
   overflow: auto;
   margin: 0;
@@ -930,10 +930,22 @@ kbd {
   border-radius: 8px;
   background: #fff;
   box-shadow: none;
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: 10px;
+  line-height: 1.5;
 }
-.note-card-preview .plain-text-preview { margin: 0; padding: 0; }
+.note-card-preview .plain-text-preview { margin: 0; padding: 0; font-size: inherit; line-height: inherit; }
+.note-card-preview h1 { padding: 2px 8px; font-size: 18px; }
+.note-card-preview h2 { font-size: 16px; }
+.note-card-preview h3 { font-size: 14px; }
+.note-card-preview h4,
+.note-card-preview h5,
+.note-card-preview h6 { font-size: 12px; }
+.note-card-preview p { margin: .45em 0; }
+.note-card-preview blockquote { margin: .6em 0; padding: 6px 9px; }
+.note-card-preview ul,
+.note-card-preview ol { padding-left: 18px; }
+.note-card-preview th,
+.note-card-preview td { padding: 4px 6px; }
 .note-card-preview .code-block { margin: 0; box-shadow: none; }
 .note-card-preview .code-block-bar { padding: 4px 6px; }
 .note-card-preview .code-copy-button { padding: 2px 6px; }
@@ -1680,7 +1692,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   .notes-grid .note-card:nth-child(3n+1),
   .notes-grid .note-card:nth-child(3n+2),
   .notes-grid .note-card:nth-child(3n) {
-    min-height: 230px;
+    min-height: 300px;
     transform: none;
   }
   .note-card-main { min-height: 0; padding: 18px 16px 12px; }
